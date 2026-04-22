@@ -1,0 +1,113 @@
+param([string]$ScriptDir = $PWD.Path)
+$ScriptDir = $ScriptDir.Trim("'", '"', ' ')
+Set-Location -Path $ScriptDir
+[console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$host.ui.RawUI.WindowTitle = "✨ MarkItDown 魔法工具箱 V2.0 ✨"
+
+$InputDir = Join-Path $ScriptDir "input"
+$OutputDir = Join-Path $ScriptDir "output"
+if (!(Test-Path $InputDir)) { New-Item -ItemType Directory -Force -Path $InputDir | Out-Null }
+if (!(Test-Path $OutputDir)) { New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null }
+
+$ScriptsDir = Join-Path $ScriptDir "python_env\Scripts"
+$env:PATH = "$ScriptDir;$ScriptsDir;" + $env:PATH
+$PythonExe = Join-Path $ScriptDir "python_env\python.exe"
+
+function Show-Manual {
+    Clear-Host
+    Write-Host "=================================================" -ForegroundColor Cyan
+    Write-Host "            📖 魔法工具箱使用说明书 (V2.0) 📖      " -ForegroundColor Cyan
+    Write-Host "=================================================" -ForegroundColor Cyan
+    Write-Host "`n 📌 【全能格式支持列表】" -ForegroundColor Yellow
+    Write-Host "  • 📄 Office: Word (.docx/.doc), PPT (.pptx/.ppt), Excel (.xlsx/.xls)"
+    Write-Host "  • 📑 PDF & 电子书: PDF (.pdf), EPUB (.epub)"
+    Write-Host "  • 🖼️ 静态/动态图: .jpg, .png, .gif, .webp, .svg, .bmp 等 (批量合并)"
+    Write-Host "  • 🎧 音视频提取: .wav, .mp3, .m4a, YouTube URL"
+    Write-Host "  • 🌐 网页与数据: .html, .csv, .json, .xml, HTTP链接"
+    Write-Host "  • 📦 高级压缩包: .zip (仅提取根目录文件，跳过嵌套文件夹)"
+    Write-Host "`n 💡 【高级特性指南】" -ForegroundColor Cyan
+    Write-Host "  1. 独立包裹: 每个文件转换后，会在 output 下生成 [独立同名文件夹]，杜绝混乱！"
+    Write-Host "  2. Typora支持: Office提取的图片保存在 assets 文件夹。请使用 Typora 软件打开"
+    Write-Host "     生成的 Markdown 文件，已自动写入 YAML 配置，图片完美关联！"
+    Write-Host "  3. 图片自动合并: 批量转换图片时，会自动融合进一个『新建文件.md』中。"
+    Write-Host "=================================================" -ForegroundColor Cyan
+    pause
+}
+
+function Run-Python {
+    param([string]$Mode, [string]$Target, [string]$Exts="")
+    if ($Exts) {
+        & $PythonExe "magic_convert.py" $Mode $Target $OutputDir $Exts
+    } else {
+        & $PythonExe "magic_convert.py" $Mode $Target $OutputDir
+    }
+}
+
+function Show-BatchMenu {
+    while ($true) {
+        Clear-Host
+        Write-Host "=================================================" -ForegroundColor Cyan
+        Write-Host "           🎯 批量转换【input】中的文件          " -ForegroundColor Cyan
+        Write-Host "=================================================" -ForegroundColor Cyan
+        Write-Host "`n 请选择你要批量处理的类型：" -ForegroundColor Yellow
+        Write-Host "  [ 1 ] 📄 Office 文档 (Word/PPT/Excel)"
+        Write-Host "  [ 2 ] 📑 PDF 文档 (.pdf)"
+        Write-Host "  [ 3 ] 📚 电子书 (.epub)"
+        Write-Host "  [ 4 ] 🖼️ 批量合并图片 (将多图融合成 单个 新建文件.md)"
+        Write-Host "  [ 5 ] 🎧 音频提取文本 (.wav/.mp3/.m4a)"
+        Write-Host "  [ 6 ] 🌐 网页与数据 (.html/.csv/.json/.xml)"
+        Write-Host "  [ 7 ] 📦 压缩包解析 (.zip 深度1解析)"
+        Write-Host "  [ 0 ] ⬅️ 返回上级菜单`n"
+
+        $bChoice = Read-Host "👉 告诉我你的选择"
+        Write-Host "`n🚀 开始批量施法..." -ForegroundColor Cyan
+        switch ($bChoice) {
+            "1" { Run-Python "batch" $InputDir ".docx,.doc,.pptx,.ppt,.xlsx,.xls"; break }
+            "2" { Run-Python "batch" $InputDir ".pdf"; break }
+            "3" { Run-Python "batch" $InputDir ".epub"; break }
+            "4" { Run-Python "batch_images" $InputDir; break }
+            "5" { Run-Python "batch" $InputDir ".wav,.mp3,.m4a"; break }
+            "6" { Run-Python "batch" $InputDir ".html,.htm,.csv,.json,.xml"; break }
+            "7" { Run-Python "batch" $InputDir ".zip"; break }
+            "0" { return }
+            default { Write-Host "❌ 无效选项" -ForegroundColor Red }
+        }
+        Write-Host "`n✅ 批量转换完成！请前往 output 文件夹查看。" -ForegroundColor Green
+        pause
+        return
+    }
+}
+
+while ($true) {
+    Clear-Host
+    Write-Host "=================================================" -ForegroundColor Cyan
+    Write-Host "               ✨ MarkItDown 魔法工具箱 ✨        " -ForegroundColor Cyan
+    Write-Host "=================================================" -ForegroundColor Cyan
+    Write-Host " 📂 状态: 已挂载 input 和 output | 引擎: Python核心" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  [ 1 ] 🎯 转换单个文件 (支持任意格式，直接拖拽文件进来)"
+    Write-Host "  [ 2 ] 🎯 批量转换【input】中的文件 (分类多选)"
+    Write-Host "  [ 3 ] 📂 打开【output】文件夹"
+    Write-Host "  [ 4 ] 📖 查看说明书"
+    Write-Host "  [ 0 ] 🏃 退出工具箱"
+    Write-Host ""
+
+    $choice = Read-Host "👉 告诉我你的选择"
+    switch ($choice) {
+        "1" {
+            $file = (Read-Host "📥 请输入或拖入文件路径").Trim('"').Trim("'")
+            if (Test-Path $file) {
+                Write-Host "`n✨ 正在对 $($file) 施加转换魔法..." -ForegroundColor Yellow
+                Run-Python "single" $file
+                Write-Host "`n✅ 搞定！已完美包裹并保存到 output 文件夹！ 🎈" -ForegroundColor Green
+            } else {
+                Write-Host "❌ 文件不存在！" -ForegroundColor Red
+            }
+            pause
+        }
+        "2" { Show-BatchMenu }
+        "3" { explorer $OutputDir }
+        "4" { Show-Manual }
+        "0" { exit }
+    }
+}
