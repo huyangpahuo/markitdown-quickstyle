@@ -19,17 +19,17 @@ function Show-Manual {
     Write-Host "            📖 魔法工具箱使用说明书 (V2.0) 📖      " -ForegroundColor Cyan
     Write-Host "=================================================" -ForegroundColor Cyan
     Write-Host "`n 📌 【全能格式支持列表】" -ForegroundColor Yellow
-    Write-Host "  • 📄 Office: Word (.docx/.doc), PPT (.pptx/.ppt), Excel (.xlsx/.xls)"
-    Write-Host "  • 📑 PDF & 电子书: PDF (.pdf), EPUB (.epub)"
-    Write-Host "  • 🖼️ 静态/动态图: .jpg, .png, .gif, .webp, .svg, .bmp 等 (批量合并)"
-    Write-Host "  • 🎧 音视频提取: .wav, .mp3, .m4a, YouTube URL"
-    Write-Host "  • 🌐 网页与数据: .html, .csv, .json, .xml, HTTP链接"
+    Write-Host "  • 📄 Office: 新版 Word (.docx), PPT (.pptx), Excel (.xlsx)"
+    Write-Host "  • 📑 PDF & 电子书: PDF (.pdf), EPUB (.epub) (PDF不支持提取图片)"
+    Write-Host "  • 🖼️ 静态/动态图: .jpg, .png, .gif, .webp 等 (批量转为单个 新建文件.md)"
+    Write-Host "  • 🌐 网页与数据: .html, .csv, .json, .xml"
     Write-Host "  • 📦 高级压缩包: .zip (仅提取根目录文件，跳过嵌套文件夹)"
+    Write-Host "  • ⚠️ [实验阶段不可用]: 🎧音视频(.wav/.mp3), 📧邮件(.msg)"
     Write-Host "`n 💡 【高级特性指南】" -ForegroundColor Cyan
-    Write-Host "  1. 独立包裹: 每个文件转换后，会在 output 下生成 [独立同名文件夹]，杜绝混乱！"
-    Write-Host "  2. Typora支持: Office提取的图片保存在 assets 文件夹。请使用 Typora 软件打开"
-    Write-Host "     生成的 Markdown 文件，已自动写入 YAML 配置，图片完美关联！"
-    Write-Host "  3. 图片自动合并: 批量转换图片时，会自动融合进一个『新建文件.md』中。"
+    Write-Host "  1. 独立包裹: 转换后在 output 生成[独立同名文件夹]，杜绝混乱！"
+    Write-Host "  2. Typora支持: Office提取的图片保存在 assets。推荐使用 Typora 软件打开"
+    Write-Host "     生成的 Markdown 文件，已自动清洗乱码并写入 YAML 配置！"
+    Write-Host "  3. PPT精准插图: PPT图片会自动插入到对应的幻灯片页码下方！"
     Write-Host "=================================================" -ForegroundColor Cyan
     pause
 }
@@ -50,26 +50,35 @@ function Show-BatchMenu {
         Write-Host "           🎯 批量转换【input】中的文件          " -ForegroundColor Cyan
         Write-Host "=================================================" -ForegroundColor Cyan
         Write-Host "`n 请选择你要批量处理的类型：" -ForegroundColor Yellow
-        Write-Host "  [ 1 ] 📄 Office 文档 (Word/PPT/Excel)"
+        Write-Host "  [ 1 ] 📄 Office 文档 (.docx / .pptx / .xlsx)"
         Write-Host "  [ 2 ] 📑 PDF 文档 (.pdf)"
         Write-Host "  [ 3 ] 📚 电子书 (.epub)"
         Write-Host "  [ 4 ] 🖼️ 批量合并图片 (将多图融合成 单个 新建文件.md)"
-        Write-Host "  [ 5 ] 🎧 音频提取文本 (.wav/.mp3/.m4a)"
+        Write-Host "  [ 5 ] 🎧 音频提取文本 [实验阶段不可用]"
         Write-Host "  [ 6 ] 🌐 网页与数据 (.html/.csv/.json/.xml)"
         Write-Host "  [ 7 ] 📦 压缩包解析 (.zip 深度1解析)"
+        Write-Host "  [ 8 ] 📧 邮件文件 [实验阶段不可用]"
         Write-Host "  [ 0 ] ⬅️ 返回上级菜单`n"
 
         $bChoice = Read-Host "👉 告诉我你的选择"
+        
+        # 拦截不可用功能
+        if ($bChoice -eq "5" -or $bChoice -eq "8") {
+            Write-Host "`n❌ 此功能处于实验阶段，目前暂不可用！" -ForegroundColor Red
+            pause
+            continue
+        }
+
+        if ($bChoice -eq "0") { return }
+
         Write-Host "`n🚀 开始批量施法..." -ForegroundColor Cyan
         switch ($bChoice) {
-            "1" { Run-Python "batch" $InputDir ".docx,.doc,.pptx,.ppt,.xlsx,.xls"; break }
+            "1" { Run-Python "batch" $InputDir ".docx,.pptx,.xlsx"; break }
             "2" { Run-Python "batch" $InputDir ".pdf"; break }
             "3" { Run-Python "batch" $InputDir ".epub"; break }
             "4" { Run-Python "batch_images" $InputDir; break }
-            "5" { Run-Python "batch" $InputDir ".wav,.mp3,.m4a"; break }
             "6" { Run-Python "batch" $InputDir ".html,.htm,.csv,.json,.xml"; break }
             "7" { Run-Python "batch" $InputDir ".zip"; break }
-            "0" { return }
             default { Write-Host "❌ 无效选项" -ForegroundColor Red }
         }
         Write-Host "`n✅ 批量转换完成！请前往 output 文件夹查看。" -ForegroundColor Green
@@ -106,7 +115,10 @@ while ($true) {
             pause
         }
         "2" { Show-BatchMenu }
-        "3" { explorer $OutputDir }
+        "3" { 
+            # 核心修复：使用 Invoke-Item 精准锁定并打开真实的 output 文件夹
+            Invoke-Item -Path $OutputDir 
+        }
         "4" { Show-Manual }
         "0" { exit }
     }
