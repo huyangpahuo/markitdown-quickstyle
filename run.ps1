@@ -4,6 +4,37 @@ Set-Location -Path $ScriptDir
 [console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $host.ui.RawUI.WindowTitle = "✨ MarkItDown 魔法工具箱 V2.0 ✨"
 
+# ================= 首次安装引导逻辑 =================
+if (!(Test-Path ".installed")) {
+    Clear-Host
+    Write-Host "=================================================" -ForegroundColor Cyan
+    Write-Host "       ✨ 欢迎来到 MarkItDown 魔法工具箱 ✨        " -ForegroundColor Cyan
+    Write-Host "=================================================" -ForegroundColor Cyan
+    Write-Host "`n呀，检测到你是第一次来到这里呢！👋" -ForegroundColor Yellow
+    Write-Host "我们需要先布置一下运行环境（只需要进行一次哦）~`n" -ForegroundColor White
+    
+    Write-Host "1. 🚀 开始安装环境 (冲鸭！)"
+    Write-Host "2. 🏃 暂时退出 (下次一定)`n"
+    
+    $installChoice = Read-Host "👉 请输入选项并按回车"
+    
+    if ($installChoice -eq "1") {
+        Write-Host "`n🌟 正在启动安装向导..." -ForegroundColor Cyan
+        $installCmd = "& ([ScriptBlock]::Create((Get-Content -LiteralPath 'install.ps1' -Encoding UTF8 -Raw)))"
+        powershell.exe -NoProfile -ExecutionPolicy Bypass -Command $installCmd
+        
+        New-Item -Path ".installed" -ItemType File -Force | Out-Null
+        
+        Write-Host "`n🎉 太棒啦，环境布置完成！正在带你进入主界面..." -ForegroundColor Green
+        Start-Sleep -Seconds 2
+    } else {
+        Write-Host "`n拜拜啦，期待下次相见~ 👋" -ForegroundColor Cyan
+        Start-Sleep -Seconds 2
+        exit
+    }
+}
+# ====================================================
+
 $InputDir = Join-Path $ScriptDir "input"
 $OutputDir = Join-Path $ScriptDir "output"
 if (!(Test-Path $InputDir)) { New-Item -ItemType Directory -Force -Path $InputDir | Out-Null }
@@ -62,7 +93,6 @@ function Show-BatchMenu {
 
         $bChoice = Read-Host "👉 告诉我你的选择"
         
-        # 拦截不可用功能
         if ($bChoice -eq "5" -or $bChoice -eq "8") {
             Write-Host "`n❌ 此功能处于实验阶段，目前暂不可用！" -ForegroundColor Red
             pause
@@ -104,21 +134,26 @@ while ($true) {
     $choice = Read-Host "👉 告诉我你的选择"
     switch ($choice) {
         "1" {
-            $file = (Read-Host "📥 请输入或拖入文件路径").Trim('"').Trim("'")
+            $rawInput = Read-Host "📥 请输入或拖入文件路径"
+            # 核心修复：拦截空输入
+            if ([string]::IsNullOrWhiteSpace($rawInput)) {
+                Write-Host "❌ 输入不能为空！" -ForegroundColor Red
+                pause
+                continue
+            }
+            
+            $file = $rawInput.Trim('"').Trim("'")
             if (Test-Path $file) {
                 Write-Host "`n✨ 正在对 $($file) 施加转换魔法..." -ForegroundColor Yellow
                 Run-Python "single" $file
                 Write-Host "`n✅ 搞定！已完美包裹并保存到 output 文件夹！ 🎈" -ForegroundColor Green
             } else {
-                Write-Host "❌ 文件不存在！" -ForegroundColor Red
+                Write-Host "❌ 哎呀，没找到这个文件，是不是路径写错了呀？" -ForegroundColor Red
             }
             pause
         }
         "2" { Show-BatchMenu }
-        "3" { 
-            # 核心修复：使用 Invoke-Item 精准锁定并打开真实的 output 文件夹
-            Invoke-Item -Path $OutputDir 
-        }
+        "3" { Invoke-Item -Path $OutputDir }
         "4" { Show-Manual }
         "0" { exit }
     }
