@@ -66,11 +66,11 @@ function Show-Manual {
 }
 
 function Run-Python {
-    param([string]$Mode, [string]$Target, [string]$Exts="")
+    param([string]$Mode, [string]$Target, [string]$Exts="", [string]$CatName="")
     if ($Exts) {
-        & $PythonExe "magic_convert.py" $Mode $Target $OutputDir $Exts
+        & $PythonExe "magic_convert.py" $Mode $Target $OutputDir $Exts $CatName
     } else {
-        & $PythonExe "magic_convert.py" $Mode $Target $OutputDir
+        & $PythonExe "magic_convert.py" $Mode $Target $OutputDir "NONE" $CatName
     }
 }
 
@@ -101,17 +101,16 @@ function Show-BatchMenu {
 
         if ($bChoice -eq "0") { return }
 
-        Write-Host "`n🚀 开始批量施法..." -ForegroundColor Cyan
         switch ($bChoice) {
-            "1" { Run-Python "batch" $InputDir ".docx,.pptx,.xlsx"; break }
-            "2" { Run-Python "batch" $InputDir ".pdf"; break }
-            "3" { Run-Python "batch" $InputDir ".epub"; break }
-            "4" { Run-Python "batch_images" $InputDir; break }
-            "6" { Run-Python "batch" $InputDir ".html,.htm,.csv,.json,.xml"; break }
-            "7" { Run-Python "batch" $InputDir ".zip"; break }
+            "1" { Run-Python "batch" $InputDir ".docx,.pptx,.xlsx" "Office" }
+            "2" { Run-Python "batch" $InputDir ".pdf" "PDF" }
+            "3" { Run-Python "batch" $InputDir ".epub" "电子书" }
+            "4" { Run-Python "batch_images" $InputDir "" "图片(静态/动图)" }
+            "6" { Run-Python "batch" $InputDir ".html,.htm,.csv,.json,.xml" "网页与数据" }
+            "7" { Run-Python "batch" $InputDir ".zip" "压缩包" }
             default { Write-Host "❌ 无效选项" -ForegroundColor Red }
         }
-        Write-Host "`n✅ 批量转换完成！请前往 output 文件夹查看。" -ForegroundColor Green
+        Write-Host "`n✅ 操作结束！请前往 output 文件夹查看结果。" -ForegroundColor Green
         pause
         return
     }
@@ -135,7 +134,6 @@ while ($true) {
     switch ($choice) {
         "1" {
             $rawInput = Read-Host "📥 请输入或拖入文件路径"
-            # 核心修复：拦截空输入
             if ([string]::IsNullOrWhiteSpace($rawInput)) {
                 Write-Host "❌ 输入不能为空！" -ForegroundColor Red
                 pause
@@ -144,9 +142,8 @@ while ($true) {
             
             $file = $rawInput.Trim('"').Trim("'")
             if (Test-Path $file) {
-                Write-Host "`n✨ 正在对 $($file) 施加转换魔法..." -ForegroundColor Yellow
+                Write-Host "`n✨ 正在呼叫魔法引擎..." -ForegroundColor Yellow
                 Run-Python "single" $file
-                Write-Host "`n✅ 搞定！已完美包裹并保存到 output 文件夹！ 🎈" -ForegroundColor Green
             } else {
                 Write-Host "❌ 哎呀，没找到这个文件，是不是路径写错了呀？" -ForegroundColor Red
             }
