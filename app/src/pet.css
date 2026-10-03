@@ -1,0 +1,125 @@
+/* 桌宠:独立悬浮在 Windows 桌面上的透明无边框置顶窗口 */
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  overflow: hidden;
+  user-select: none;
+}
+
+#pet {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.face {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 28%, #a89bff 0%, #7c6ff0 45%, #5a49d6 100%);
+  box-shadow:
+    0 10px 24px rgba(90, 73, 214, 0.45),
+    inset 0 -8px 16px rgba(30, 20, 90, 0.35),
+    inset 0 6px 12px rgba(255, 255, 255, 0.25);
+  transition: transform 0.15s ease;
+}
+
+.eye {
+  position: absolute;
+  top: 38px;
+  width: 13px;
+  height: 17px;
+  border-radius: 50%;
+  background: #1e1b2e;
+  transition: transform 0.08s ease;
+}
+
+.eye::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.eye.left {
+  left: 26px;
+}
+
+.eye.right {
+  right: 26px;
+}
+
+.mouth {
+  position: absolute;
+  left: 50%;
+  top: 62px;
+  width: 16px;
+  height: 8px;
+  margin-left: -8px;
+  border-bottom: 3px solid #1e1b2e;
+  border-radius: 0 0 16px 16px;
+  transition: all 0.15s ease;
+}
+
+.badge {
+  position: absolute;
+  top: -10px;
+  right: -8px;
+  font-size: 20px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+  animation: float 2.6s ease-in-out infinite;
+}
+
+/* 眨眼:双眼压扁 */
+#pet.blink .eye {
+  transform: scaleY(0.12);
+}
+
+/* 被戳一下:Q 弹 */
+#pet.poke .face {
+  transform: scale(1.12, 0.9);
+}
+
+/* 转换进行中:眯眼加油 + 轻微浮动 */
+#pet.working .face {
+  animation: work 0.9s ease-in-out infinite;
+}
+
+#pet.working .eye {
+  transform: scaleY(0.35);
+}
+
+#pet.working .mouth {
+  width: 20px;
+  margin-left: -10px;
+  border-bottom-color: #2e2a4a;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes work {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(2deg);
+  }
+}

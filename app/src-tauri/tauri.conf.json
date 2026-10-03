@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "MarkItDown QuickStyle",
+  "version": "0.1.0",
+  "identifier": "com.quickstyle.markitdown",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "MarkItDown QuickStyle",
+        "width": 420,
+        "height": 640,
+        "minWidth": 340,
+        "minHeight": 480
+      },
+      {
+        "label": "pet",
+        "url": "pet.html",
+        "title": "pet",
+        "width": 140,
+        "height": 160,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "shadow": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/icon.ico"]
+  }
+}

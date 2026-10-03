@@ -1,0 +1,20 @@
+# 下载的 Python 包 (markitdown 及依赖, 由 install.ps1/get-pip 安装, 不入库)
+python_env/Lib/
+python_env/Scripts/
+python_env/share/
+
+# 运行时目录与标记
+output/
+input/
+.installed
+
+# Node / 前端
+app/node_modules/
+app/dist/
+
+# Rust / Tauri
+app/src-tauri/target/
+app/src-tauri/gen/schemas/
+
+# 公开仓库不上传的测试文件 (版权考虑)
+测试专用/电子书/

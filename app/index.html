@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MarkItDown QuickStyle</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <div class="title">✨ 魔法工具箱</div>
+        <div id="status" class="status">正在检查引擎…</div>
+      </header>
+
+      <div id="drop" class="drop" title="点击选择文件,或直接拖拽进来">
+        <div class="drop-icon">📥</div>
+        <div class="drop-text">拖拽文件到这里<br /><span class="hint">支持 Office / PDF / EPUB / 图片 / 网页 / ZIP,可多选</span></div>
+      </div>
+
+      <section class="batch">
+        <div class="section-label">批量转换 input/ 目录</div>
+        <div class="grid">
+          <button class="cat" data-exts=".docx,.pptx,.xlsx,.xls" data-cat="Office">📄 Office</button>
+          <button class="cat" data-exts=".pdf" data-cat="PDF">📑 PDF</button>
+          <button class="cat" data-exts=".epub" data-cat="电子书">📚 EPUB</button>
+          <button class="cat" data-exts="" data-cat="图片">🖼️ 图片合并</button>
+          <button class="cat" data-exts=".html,.htm,.csv,.json,.xml" data-cat="网页数据">🌐 网页数据</button>
+          <button class="cat" data-exts=".zip" data-cat="压缩包">📦 ZIP</button>
+        </div>
+      </section>
+
+      <section class="log-section">
+        <div class="section-label row">
+          <span>转换日志</span>
+          <button id="clear-log" class="mini" title="清空日志">🧹</button>
+        </div>
+        <div id="log" class="log"></div>
+      </section>
+
+      <footer>
+        <button id="open-output" class="primary">📂 打开 output 文件夹</button>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

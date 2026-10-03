@@ -4,10 +4,24 @@ import shutil
 import zipfile
 import tempfile
 import re
+import json
 from pathlib import Path
 from markitdown import MarkItDown
 
 IMAGE_EXTS = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.tiff'}
+
+# --json 模式: 每行输出一个 JSON 事件 {"type": "info|start|success|error", "message": ..., "file": ...}
+# 供 GUI(Tauri)与 MCP server 解析;不带 --json 时输出与旧版终端完全一致
+USE_JSON = False
+
+def emit(kind, message, file=None):
+    if USE_JSON:
+        obj = {"type": kind, "message": message}
+        if file is not None:
+            obj["file"] = file
+        print(json.dumps(obj, ensure_ascii=False), flush=True)
+    else:
+        print(message, flush=True)
 
 def inject_yaml_and_save(md_content, out_md_path, assets_folder_name):
     yaml_header = f"---\ntypora-copy-images-to: ./{assets_folder_name}\n---\n\n"
@@ -50,7 +64,7 @@ def extract_word_images(file_path, assets_dir):
 
 def convert_single_file(file_path, base_out_dir, silent=False):
     file_path = Path(file_path)
-    if not file_path.exists() or file_path.suffix.lower() in ['.zip', '.doc', '.ppt', '.xls']:
+    if not file_path.exists() or file_path.suffix.lower() in ['.zip', '.doc', '.ppt']:
         return False
     
     base_name = file_path.stem
@@ -72,14 +86,14 @@ def convert_single_file(file_path, base_out_dir, silent=False):
         word_images = extract_word_images(file_path, assets_dir)
         
     if not silent:
-        print(f"  🔄 正在解析: {file_path.name} ...")
-        
+        emit("start", f"  🔄 正在解析: {file_path.name} ...", file=file_path.name)
+
     try:
         md = MarkItDown()
         result = md.convert(str(file_path))
         md_content = result.text_content if result else ""
     except Exception as e:
-        print(f"  ❌ {file_path.name} 转换失败: {e}")
+        emit("error", f"  ❌ {file_path.name} 转换失败: {e}", file=file_path.name)
         return False
         
     md_content = re.sub(r'!\[.*?\]\(data:image/[^;]+;base64,[^\)]+\)', '', md_content)
@@ -139,12 +153,12 @@ def process_zip_depth1(zip_path, base_out_dir):
         depth1_infos = [info for info in z.infolist() if not info.is_dir() and '/' not in info.filename]
         
         if not depth1_infos:
-            print(f"\n  👀 ZIP包 [{zip_path.name}] 的根目录没有发现文件，已跳过。")
+            emit("info", f"\n  👀 ZIP包 [{zip_path.name}] 的根目录没有发现文件,已跳过。")
             shutil.rmtree(temp_dir, ignore_errors=True)
             return
-            
+
         file_names = [info.filename for info in depth1_infos]
-        print(f"\n  📦 已检测到 ZIP [{zip_path.name}] 深度 1 包含以下文件:\n    - " + "\n    - ".join(file_names))
+        emit("info", f"\n  📦 已检测到 ZIP [{zip_path.name}] 深度 1 包含以下文件:\n    - " + "\n    - ".join(file_names))
         
         zip_wrapper_dir.mkdir(parents=True, exist_ok=True)
         images_to_merge = []
@@ -160,62 +174,67 @@ def process_zip_depth1(zip_path, base_out_dir):
                     
     # 输出战报
     if regular_converted:
-        print(f"  ✅ ZIP 内已成功转换为以下文件:\n    - " + "\n    - ".join(regular_converted))
+        emit("success", f"  ✅ ZIP 内已成功转换为以下文件:\n    - " + "\n    - ".join(regular_converted))
     if images_to_merge:
         convert_merged_images(images_to_merge, zip_wrapper_dir, "新建文件")
         img_names = [Path(p).name for p in images_to_merge]
-        print(f"  ✅ ZIP 内已将以下图片合并为 [新建文件.md]:\n    - " + "\n    - ".join(img_names))
+        emit("success", f"  ✅ ZIP 内已将以下图片合并为 [新建文件.md]:\n    - " + "\n    - ".join(img_names))
         
     shutil.rmtree(temp_dir, ignore_errors=True)
 
 def main():
+    global USE_JSON
+    if "--json" in sys.argv:
+        USE_JSON = True
+        sys.argv = [a for a in sys.argv if a != "--json"]
+
     if len(sys.argv) < 3: return
     mode = sys.argv[1]
     target = sys.argv[2]
     out_dir = sys.argv[3] if len(sys.argv) > 3 else "output"
-    
+
     if mode == "single":
-        if target.lower().endswith('.zip'): 
+        if target.lower().endswith('.zip'):
             process_zip_depth1(target, out_dir)
-        else: 
+        else:
             if convert_single_file(target, out_dir):
-                print(f"  ✅ 已成功转换: {Path(target).name}")
-                
+                emit("success", f"  ✅ 已成功转换: {Path(target).name}", file=Path(target).name)
+
     elif mode == "batch_images":
         cat_name = sys.argv[5] if len(sys.argv) > 5 else "图片"
         input_dir = Path(target)
         images = [f for f in input_dir.iterdir() if f.suffix.lower() in IMAGE_EXTS and f.is_file()]
-        
+
         if not images:
-            print(f"\n  👀 未检测到 {cat_name} 格式的文件！")
+            emit("info", f"\n  👀 未检测到 {cat_name} 格式的文件!")
             return
-            
-        print(f"\n  ✨ 发现 {len(images)} 张图片，正在合并...")
+
+        emit("info", f"\n  ✨ 发现 {len(images)} 张图片,正在合并...")
         if convert_merged_images(images, out_dir, "新建文件"):
             img_names = [img.name for img in images]
-            print(f"  ✅ 已将以下图片合并为 [新建文件.md]:\n    - " + "\n    - ".join(img_names))
-            
+            emit("success", f"  ✅ 已将以下图片合并为 [新建文件.md]:\n    - " + "\n    - ".join(img_names))
+
     elif mode == "batch":
         input_dir = Path(target)
         category_exts = sys.argv[4].split(',') if len(sys.argv) > 4 else []
         cat_name = sys.argv[5] if len(sys.argv) > 5 else "指定"
-        
+
         valid_files = [f for f in input_dir.iterdir() if f.is_file() and f.suffix.lower() in category_exts]
         if not valid_files:
-            print(f"\n  👀 未检测到 {cat_name} 格式的文件！")
+            emit("info", f"\n  👀 未检测到 {cat_name} 格式的文件!")
             return
-            
-        print(f"\n  ✨ 发现 {len(valid_files)} 个 {cat_name} 文件，开始施法...")
+
+        emit("info", f"\n  ✨ 发现 {len(valid_files)} 个 {cat_name} 文件,开始施法...")
         converted_files = []
-        
+
         for f in valid_files:
-            if f.suffix.lower() == '.zip': 
+            if f.suffix.lower() == '.zip':
                 process_zip_depth1(f, out_dir)
-            else: 
+            else:
                 if convert_single_file(f, out_dir):
                     converted_files.append(f.name)
-                    
+
         if converted_files:
-            print(f"\n  ✅ 已成功转换以下文件:\n    - " + "\n    - ".join(converted_files))
+            emit("success", f"\n  ✅ 已成功转换以下文件:\n    - " + "\n    - ".join(converted_files))
 
 if __name__ == "__main__": main()
